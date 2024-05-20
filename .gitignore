@@ -1,0 +1,4 @@
+data/tropicalsound.wav
+test/test_sine.wav
+*.pyc
+.vscode
