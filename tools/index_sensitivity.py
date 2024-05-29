@@ -231,15 +231,13 @@ class IndexSensitivity(ABC):
         serieses:list[pd.DataFrame] = []
         for folder in Path(self.settings.data_location).iterdir():
             files  = list(folder.glob("*.wav"))
-            # with Pool(n_processes) as pool, tqdm(total=len(files), leave=False) as pbar:
-                # ret = [pool.apply_async(self.process_sound_file, args=(i, folder), callback=lambda _:pbar.update(1)) for i in files]
-                # res = [r.get() for r in ret]
-                # for r in res:
-                    # if r is not None:
-                        # for s in r:
-                            # serieses.append(s)
-            for fl in files:
-                self.process_sound_file(fl, folder)
+            with Pool(n_processes) as pool, tqdm(total=len(files), leave=False) as pbar:
+                ret = [pool.apply_async(self.process_sound_file, args=(i, folder), callback=lambda _:pbar.update(1)) for i in files]
+                res = [r.get() for r in ret]
+                for r in res:
+                    if r is not None:
+                        for s in r:
+                            serieses.append(s)
 
         if output_file:
             self.pickle_data(serieses, output_file)
