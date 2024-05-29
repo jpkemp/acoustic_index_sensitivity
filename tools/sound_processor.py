@@ -30,16 +30,21 @@ class Sound:
 class SoundProcessor:
     '''Functions for processing sound signals'''
     @classmethod
-    def normalise_sound(cls, data, sampwidth):
+    def normalise_sound(cls, data, data_format):
+        '''Scales data to range [-1, 1] based on the wav format'''
         def temp(x):
-            # scales to range [-1, 1]
-            return float(x) / pow(2, sampwidth * 8 - 1)
+            if not x:
+                return 0.0
+            if x > 0:
+                return float(x) /np.iinfo(data_format).max
+            
+            return float(x) / abs(np.iinfo(data_format).min)
 
         conv = np.vectorize(temp)
         return conv(data)
 
     @classmethod
-    def open_wav(cls, input_file:str, channel:int=None, trim_start:int=0, length:int=-1, soundtrap:int=None, normalise:bool=True)->None:
+    def open_wav(cls, input_file:str, channel:int=None, trim_start:int=0, length:int=-1, soundtrap:int=None, normalise:bool=True)-> Sound:
         ''' Open a wave file
             input_file: file to open
 
@@ -68,7 +73,7 @@ class SoundProcessor:
                 a = np.ndarray((nframes * nch,), dtype=wave_format[sampwidth], buffer=frames)
 
             if normalise:
-                a = cls.normalise_sound(a, sampwidth)
+                a = cls.normalise_sound(a, wave_format[sampwidth])
 
         if nch > 1:
             if channel is None:
@@ -108,7 +113,14 @@ class SoundProcessor:
             return f.getnframes()
 
     @classmethod
-    def get_sample(cls, sound:Sound, start, end):
+    def get_sample(cls, sound:Sound, start:float, end:float) -> Sound:
+        '''get a subsample from a sound, with a start and end time
+        
+        sound: a Sound object
+        start: the start time
+        end: the end time
+        
+        returns: a new Sound object with the subsample'''
         start_samp = int(start * sound.fs)
         end_samp = int(end * sound.fs)
 

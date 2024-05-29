@@ -6,7 +6,6 @@ class CommonSettings:
     n_processes:int = 10
     frequency_threshold:int = 100
     trim_file_start:int = 5
-    normalise_index_values:bool = False
     iterations:int = 3000
     warmup:int = 2000
     colors:tuple = None

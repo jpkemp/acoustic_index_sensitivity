@@ -1,9 +1,8 @@
 import unittest
-import math
 import numpy as np
-from tools.sound_processor import SoundProcessor, WAV_MAX, WAV_MIN
+from tools.sound_processor import SoundProcessor 
 
-class TestStringMethods(unittest.TestCase):
+class TestSoundProcessor(unittest.TestCase):
     def setUp(self):
         self.sp = SoundProcessor()
 

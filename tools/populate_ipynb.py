@@ -39,7 +39,6 @@ class CellAdder:
             return f"print({heading}_{flt}_{band}_{index}_ratio_summary)"
 
         return f"print({heading}_{band}_{index}_ratio_summary)"
-
     
     @classmethod
     def generate_fig_cell(cls, heading, band, index, flt=None):
