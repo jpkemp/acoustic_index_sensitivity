@@ -9,14 +9,9 @@ from maad.features import acoustic_complexity_index, bioacoustics_index, acousti
 from maad.sound import spectrogram
 from scipy.signal import butter, sosfilt
 from tqdm import tqdm
-from tools.sound_processor import SoundProcessor as sp
-from datetime import datetime as dt, timedelta as td
-import pandas as pd
-from maad.features import acoustic_complexity_index, bioacoustics_index, acoustic_diversity_index, acoustic_eveness_index
-from maad.sound import spectrogram
-from scipy.signal import butter, sosfilt
-from study_settings.common import CommonSettings
 from tools.r_link import Rlink
+from tools.sound_processor import SoundProcessor as sp
+from study_settings.common import CommonSettings
 
 class IndexSensitivity(ABC):
     '''Functions for loading sound files, calulating acoustic indices, and modelling differences at various parameters. These functions have been designed with this study in mind and some may not generalise well'''
@@ -74,9 +69,9 @@ class IndexSensitivity(ABC):
 
         returns: Callable'''
         if idx == "ACI": return lambda x, y: acoustic_complexity_index(x)[2]
-        if idx == "ADI": return acoustic_diversity_index
-        if idx == "AEI": return acoustic_eveness_index
-        if idx == "BIO": return bioacoustics_index
+        if idx == "ADI": return lambda x, y: acoustic_diversity_index(x, y, fmin=min(y), fmax=max(y), bin_step=100)
+        if idx == "AEI": return lambda x, y: acoustic_eveness_index(x, y, fmin=min(y), fmax=max(y), bin_step=100)
+        if idx == "BIO": return lambda x, y: bioacoustics_index(x, y, (min(y), max(y)))
 
         raise ValueError(f"No applicable index function for {idx}")
 
