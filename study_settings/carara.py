@@ -30,8 +30,8 @@ class CararaToolbox(IndexSensitivity):
     @overrides
     def series_definition(cls, index, band_name, filtered, stamp, site, parameter, func, Sxx, fn):
         '''series creation for rows of the dataframe, including column names, which vary slightly between the Carara and Big Vicky experiments'''
-        ret = pd.Series([index, band_name, filtered, stamp, site, parameter, func(Sxx, fn)],
-            index=["Index", "Band", "Filtered", "Time", "Site", "Window", "Value"])
+        ret = pd.Series([index, band_name, filtered, stamp, stamp.day, site, parameter, func(Sxx, fn)],
+            index=["Index", "Band", "Filtered", "Time", "Day", "Site", "Window", "Value"])
 
         return ret
 

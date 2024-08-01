@@ -16,11 +16,14 @@ get_family <- function(index) {
     if (index == "ACI"){return(stats::Gamma(link=log))}
     if (index == "ADI"){return(stats::Gamma(link=log))}
     if (index == "AEI"){return(brms::Beta())}
-    if (index == "BIO"){return(brms::hurdle_gamma(link=log))}
+    # if (index == "BIO"){return(brms::hurdle_gamma(link=log))}
+    if (index == "BIO"){return(stats::Gamma(link=log))}
+    # if (index == "BIO"){return(brms::hurdle_lognormal())}
 }
 
-terra_hurdle_formula = brms::bf(Value ~ (Site * Window), hu ~ (Site * Window))
-terra_general_formula = "Value ~ (Site * Window)"
+terra_hurdle_formula = brms::bf(Value ~ (Site * Window) + (1 | Day), hu ~ (Site * Window))
+# terra_hurdle_formula = brms::bf(Value ~ (Site * Window), hu ~ (Site * Window))
+terra_general_formula = "Value ~ (Site * Window) + (1 | Day)"
 marine_hurdle_formula = brms::bf(Value ~ (Hour * Window) + (1 | Site), hu ~ (Hour * Window) + (1 | Site))
 marine_general_formula = "Value ~ (Hour * Window) + (1 | Site)"
 generate_model <- function(data, family, iter, warmup, marine=TRUE, link_hu=FALSE) {
@@ -50,23 +53,17 @@ generate_model <- function(data, family, iter, warmup, marine=TRUE, link_hu=FALS
               silent=TRUE
             )
 }
-
-generate_conditional_effects <- function(model) {
-    eff <- brms::conditional_effects(model)
-
-    return(eff)
-}
-
 find_effects <- function(data, index, output_path, marine, iter=5000, warmup=4000) {
+    data_path <- paste(output_path, "_data.RData", sep="")
+    save(data, file=data_path)
     family <- get_family(index)
-    model <- generate_model(data, family, iter=iter, warmup=warmup, marine=marine, link_hu=index=="BIO")
-    effects <- generate_conditional_effects(model)
+    # model <- generate_model(data, family, iter=iter, warmup=warmup, marine=marine, link_hu=index=="BIO")
+    model <- generate_model(data, family, iter=iter, warmup=warmup, marine=marine, link_hu=FALSE)
     model_path <- paste(output_path, "_model.RData", sep="")
     save(model, file=model_path)
+    effects <- brms::conditional_effects(model)
     effects_path <- paste(output_path, "_effects.RData", sep="")
     save(effects, file=effects_path)
-    workspace_path <- paste(output_path, "_workspace.RData", sep="")
-    save.image(file=workspace_path)
 
     return(list(model, effects))
 }
@@ -88,28 +85,28 @@ get_posterior_ratios <- function(model, num="12", den="0", cross="Hour") {
     # tidyr::pivot_longer(cols = 1:4000, values_to = "value", names_to = ".draw") |>
     dplyr::mutate(.draw = as.numeric(.draw)) |>
     dplyr::group_by(Window, .draw) |>
-    dplyr::summarise(ratio = value[!!dplyr::sym(cross) == num] / value[!!dplyr::sym(cross) == den]) |>
+    dplyr::summarise(ratio = value[!!dplyr::sym(cross) == num] / value[!!dplyr::sym(cross) == den]) |> 
+    dplyr::ungroup()
+}
+
+# calc_dist_same_ratio <- function(x, thresh=0.1) {
+#  sum(x > -thresh & x < thresh) / length(x)
+# }
+
+get_posterior_ratio_difference <- function(posterior_ratios, num="12", den="0", cross="Hour") {
+    posterior_ratios |>
+    dplyr::group_by((.draw)) |>
+    dplyr::summarise(difference = max(ratio) / min(ratio)) |>
+    # dplyr::summarise(exc_prob = calc_dist_same_ratio(difference)) |>
+    dplyr::summarise(mean = mean(difference), sd=sd(difference)) |>
     dplyr::ungroup()
 }
 
 get_posterior_ratio_summary <- function(posterior_ratios) {
     posterior_ratios |>
-    dplyr::group_by(Window) |>
+    dplyr::group_by(Window) |> # group by draw instead
+    # calculate difference of ratio between two windows -> as per 91, but Window instead; probability of > or < 0 should be similar
     dplyr::summarise(ggdist::median_hdci(ratio)) |>
-    dplyr::ungroup()
-}
-
-get_posterior_ratio_change_likelihood <- function(posterior_ratios) {
-        # # You can also calculate the probability of any given Window having a larger
-    # #   ratio than the minimum Window (or any other reference window that matter),
-    # #   e.g.
-    posterior_ratios |>
-    dplyr::group_by(.draw) |>
-    dplyr::reframe(Window = Window,
-                    is_ratio_larger = ratio > ratio[Window == min(Window)]) |>
-    # dplyr::filter(Window != min(Window)) |> # These will FALSE, so useless
-    dplyr::group_by(Window) |>
-    dplyr::summarise(probability = sum(is_ratio_larger) / max(.draw)) |>
     dplyr::ungroup()
 }
 
