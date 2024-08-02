@@ -113,3 +113,13 @@ get_posterior_ratio_summary <- function(posterior_ratios) {
 get_warnings <- function() {
     return(warnings())
 }
+
+load_model <- function(model_file) {
+    load(model_file)
+
+    return(model)
+} 
+
+posterior_checks <- function(model, type) {
+    check <- brms::pp_check(model, type=type)
+}

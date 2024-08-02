@@ -117,10 +117,8 @@ class PlotCombiner:
         return filenames
 
     @classmethod
-    def combine_plots(cls, output_folder, output_file_notation, only_include=None, sorting=None, max_figs_per_row=2):
+    def combine_plots(cls, filenames, output_folder, output_file_notation, max_figs_per_row=2):
         '''wrapper for graph combining process'''
-        filenames = cls.get_figures_from_folders(output_folder, only_include, sorting)
-        if not filenames: return
         figs = [cls.open_figure(x, bool(i)) for i, x in enumerate(filenames)]
         n_figs = len(figs)
         rows = ceil(n_figs / max_figs_per_row)
@@ -148,5 +146,8 @@ if __name__ == "__main__":
     sorting = lambda x: x.name.split('_')[6]
     for target, band, fltr in tqdm(product(targets, bands, filtered)):
         only_inc = partial(inc, target, band, fltr)
-        combiner.combine_plots("output", f"{target}_{band}_{fltr}", only_inc, sorting)
+        filenames = combiner.get_figures_from_folders("output", only_inc, sorting)
+        if not filenames: continue
+        combiner.combine_plots("output", f"{target}_{band}_{fltr}")
 
+    
