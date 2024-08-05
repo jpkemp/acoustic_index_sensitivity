@@ -89,10 +89,6 @@ get_posterior_ratios <- function(model, num="12", den="0", cross="Hour") {
     dplyr::ungroup()
 }
 
-# calc_dist_same_ratio <- function(x, thresh=0.1) {
-#  sum(x > -thresh & x < thresh) / length(x)
-# }
-
 get_posterior_ratio_difference <- function(posterior_ratios, num="12", den="0", cross="Hour") {
     posterior_ratios |>
     dplyr::group_by((.draw)) |>

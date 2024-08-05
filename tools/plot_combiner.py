@@ -10,8 +10,17 @@ from PIL import Image
 
 class PlotCombiner:
     '''graph combining functions'''
-    @classmethod
-    def open_figure(cls, filename, discard_lgd=False):
+    def __init__(self) -> None:
+        self.fig_bufs = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        for buf in self.fig_bufs:
+            buf.close()
+
+    def open_figure(self, filename, discard_lgd=False):
         fig = pickle.load(open(filename, 'rb'))
         lgd = fig.get_axes()[0].get_legend()
         if discard_lgd:
@@ -19,7 +28,8 @@ class PlotCombiner:
             buf = None
         else:
             buf = io.BytesIO()
-            cls.export_legend(lgd, buf)
+            self.fig_bufs.append(buf)
+            self.export_legend(lgd, buf)
             lgd.remove()
 
         ax = fig.gca()
@@ -55,7 +65,8 @@ class PlotCombiner:
                 images.append(Image.open(buf))
                 if lgd_buf: lgd = Image.open(lgd_buf)
 
-            mod = len(images) % imgs_per_row
+            n_imgs = len(images)
+            mod = n_imgs % imgs_per_row
             final = []
             subset = images
             if mod:
@@ -67,10 +78,17 @@ class PlotCombiner:
             if include_lgd:
                 lgd_width += lgd.size[0] + spacing
 
-            total_width = ceil(sum(widths) / imgs_per_row) + lgd_width
-            max_height = ceil(max(heights) * rows) + (rows - 1) * (int(spacing))
+            max_width = 0
+            max_height = 0
+            for i in range(0, n_imgs, imgs_per_row):
+                row_width = sum(widths[i:i+imgs_per_row])
+                max_width = max(max_width, row_width)
+                max_height += max(heights[i:i+imgs_per_row])
 
-            new_im = Image.new('RGB', (total_width, max_height), color="white")
+            total_width = max_width + lgd_width
+            total_height = ceil(max(heights) * rows) + (rows - 1) * (int(spacing))
+
+            new_im = Image.new('RGB', (total_width, total_height), color="white")
 
             x_offset = 0
             y_offset = 0
@@ -91,7 +109,7 @@ class PlotCombiner:
 
             if include_lgd:
                 x_offset = total_width - lgd_width - spacing
-                y_offset = ceil((max_height / 2) - (lgd.size[1] / 2)) + 10
+                y_offset = ceil((total_height / 2) - (lgd.size[1] / 2)) + 10
                 new_im.paste(lgd, (x_offset,y_offset))
 
             
@@ -119,12 +137,13 @@ class PlotCombiner:
     @classmethod
     def combine_plots(cls, filenames, output_folder, output_file_notation, max_figs_per_row=2):
         '''wrapper for graph combining process'''
-        figs = [cls.open_figure(x, bool(i)) for i, x in enumerate(filenames)]
-        n_figs = len(figs)
-        rows = ceil(n_figs / max_figs_per_row)
-        final_fig = cls.combine_figures(figs, rows, max_figs_per_row)
-        output_filename = str(output_folder) + f"/combined_{output_file_notation}.png"
-        final_fig.save(output_filename)
+        with PlotCombiner() as combiner:
+            figs = [combiner.open_figure(x, bool(i)) for i, x in enumerate(filenames)]
+            n_figs = len(figs)
+            rows = ceil(n_figs / max_figs_per_row)
+            final_fig = cls.combine_figures(figs, rows, max_figs_per_row)
+            output_filename = str(output_folder) + f"/combined_{output_file_notation}.png"
+            final_fig.save(output_filename)
 
 if __name__ == "__main__":
     def inc(tgt:str, band:str, flt:bool, x):
@@ -139,7 +158,7 @@ if __name__ == "__main__":
         
         return True
 
-    combiner = PlotCombiner()
+    combiner = PlotCombiner
     targets = ["Site", "Hour"]
     bands = ["broadband", "shrimp", "fish"]
     filtered = [True, False]
@@ -148,6 +167,18 @@ if __name__ == "__main__":
         only_inc = partial(inc, target, band, fltr)
         filenames = combiner.get_figures_from_folders("output", only_inc, sorting)
         if not filenames: continue
-        combiner.combine_plots("output", f"{target}_{band}_{fltr}")
+        combiner.combine_plots(filenames, "output", f"{target}_{band}_{fltr}")
+
+
+    filenames = [f"output/{x}_call frequency effect_rate_plot.pkl" for x in ["ACI", "BIO"]]
+    combiner.combine_plots(filenames, "output", f"frequency_ACI_BIO")
+
+    filenames = ["output/Hour_x_Window_conditional_effects_for_AEI_over_filtered_shrimp_frequencies_Python.pkl",
+                "output/Hour_x_Window_conditional_effects_for_AEI_over_shrimp_frequencies_Python.pkl"]
+    combiner.combine_plots(filenames, "output", f"shrimp_AEI")
+    
+    filenames = ["output/Hour_x_Window_conditional_effects_for_ADI_over_filtered_fish_frequencies_Python.pkl",
+                "output/Hour_x_Window_conditional_effects_for_ADI_over_fish_frequencies_Python.pkl"]
+    combiner.combine_plots(filenames, "output", f"fish_ADI")
 
     

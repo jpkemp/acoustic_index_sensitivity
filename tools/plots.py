@@ -58,7 +58,7 @@ def plot_conditional_effects(r_link,
         with context():
             point_df = pandas2ri.rpy2py(points)
 
-        for var_id, group in point_df.groupby(effect_names[1]):
+        for var_id, group in point_df.groupby(effect_names[1], observed=False):
             x = group[effect_names[0]] #-  int(var_id)
             y = group['resp__']
             if unlog:
@@ -70,7 +70,7 @@ def plot_conditional_effects(r_link,
     ylabel = df.columns[2]
     legend_title = df.columns[1]
 
-    for var_id, group in df.groupby(effect_names[1]):
+    for var_id, group in df.groupby(effect_names[1], observed=False):
         x = group[effect_names[0]]
         var_line = group["estimate__"]
         upperlimit = group["upper__"]

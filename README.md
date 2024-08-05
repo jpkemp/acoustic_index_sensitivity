@@ -7,6 +7,10 @@ The file 'aci.ipynb' explores the effect of parameter selection on the Acoustic 
 
 The file 'within_study_test.ipynb' explores the effect of parameter selection on four common acoustic indices: Acoustic Complexity Index, Acoustic Diversity Index, Acoustic Evenness Index, and Bioacoustic Index on two datasets, one from Carara National Park in Costa Rica and one from Big Vicky's Reef in Australia ([[1]](#1),[[2]](#2),[[3]](#3) ).
 
+The file 'posterior_checks'.ipynb presents the denisty overlay and scatter average posteriro checks for the within-study test.
+
+The file 'frequency_impact.ipynb' explores the effect of frequency on the interaction between simulated calls and FFT window parameter selection.
+
 ## Contact
 Please contact me with any questions
 <a href=https://au.linkedin.com/in/james-kemp-11874a93><img src=https://blog-assets.hootsuite.com/wp-content/uploads/2018/09/In-2C-54px-R.png
