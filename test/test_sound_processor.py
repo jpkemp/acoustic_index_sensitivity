@@ -31,7 +31,7 @@ class TestSoundProcessor(unittest.TestCase):
             sound = self.sp.open_wav(file_path, normalise=False)
             self.assertEqual(len(sound.signal), len(test_sound.signal))
             for i, v in enumerate(test_sound.signal):
-                self.assertEqual(v, sound.signal[i])
+                self.assertEqual(int(v), sound.signal[i])
 
             self.assertEqual(fs, sound.fs)
 

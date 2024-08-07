@@ -5,3 +5,4 @@ test/test_sine.wav
 guyot_acoustic_indices/
 *.pkl
 *.RData
+*.zip

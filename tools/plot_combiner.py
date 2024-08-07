@@ -170,6 +170,9 @@ if __name__ == "__main__":
         combiner.combine_plots(filenames, "output", f"{target}_{band}_{fltr}")
 
 
+    filenames = [f"output/{x}_call frequency effect_rate_plot.pkl" for x in ["ACI", "ADI", "AEI", "BIO"]]
+    combiner.combine_plots(filenames, "output", f"frequency_all")
+
     filenames = [f"output/{x}_call frequency effect_rate_plot.pkl" for x in ["ACI", "BIO"]]
     combiner.combine_plots(filenames, "output", f"frequency_ACI_BIO")
 

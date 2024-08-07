@@ -164,20 +164,20 @@ class SoundProcessor:
         '''
         rad_f = 2 * np.pi * f
         samples = np.arange(fs * t) / fs
-        sig = np.sin(rad_f * samples).round() * amp
+        sgnl = np.sin(rad_f * samples) * amp
         if output_path:
-            amp = max(max(sig), abs(min(sig)))
+            amp = max(max(sgnl), abs(min(sgnl)))
             converted_sig = None
             for data_format in [np.int16, np.int32]:
                 if amp <= np.iinfo(data_format).max:
-                    converted_sig = np.array([x for x in sig], dtype=data_format)
+                    converted_sig = np.array([x for x in sgnl], dtype=data_format)
                     wavfile.write(output_path, fs, converted_sig)
                     break
             else:
                 raise ValueError(f"Amplitude {amp} is not appropriate for uint8, int16, or int32")
 
         time_vec = np.arange(0, t, 1/fs)
-        sound = Sound(sig, time_vec, fs)
+        sound = Sound(sgnl, time_vec, fs)
 
         return sound
 
