@@ -1,5 +1,6 @@
 import pickle
 from math import exp
+from operator import add, sub
 import matplotlib.pyplot as plt
 from rpy2.robjects import pandas2ri
 
@@ -27,7 +28,8 @@ def plot_conditional_effects(r_link,
                              plot_points:bool=False, 
                              sec_ax:tuple=None,
                              colors:list=None,
-                             unlog:bool=False):
+                             unlog:bool=False,
+                             jitter_magnitude:int=100):
     ''' 
         r_link: an instance of the r_link class
         filename: str or Path
@@ -58,11 +60,14 @@ def plot_conditional_effects(r_link,
         with context():
             point_df = pandas2ri.rpy2py(points)
 
-        for var_id, group in point_df.groupby(effect_names[1], observed=False):
-            x = group[effect_names[0]] #-  int(var_id)
+        for i, (var_id, group) in enumerate(point_df.groupby(effect_names[1], observed=False)):
+            jitter_dir = add if i % 2 else sub
+            x = group[effect_names[0]]
             y = group['resp__']
             if unlog:
                 x = x.apply(lambda x: exp(x))
+            
+            x = x.apply(lambda x: jitter_dir(x, jitter_magnitude * (1 + i // 2)))
 
             ax.scatter(x, y, linestyle="None", marker='.', color=colour_map[var_id])
 

@@ -29,10 +29,10 @@ class BigVickyToolbox(IndexSensitivity):
         return site, stamp
 
     @overrides
-    def series_definition(cls, index, band_name, filtered, stamp, site, parameter, func, Sxx, fn):
+    def series_definition(cls, index, band_name, filtered, stamp, site, parameter, func, Sxx, fn, truncation):
         '''series creation for rows of the dataframe, including column names, which vary slightly between the Carara and Big Vicky experiments'''
-        ret = pd.Series([index, band_name, filtered, stamp.day, stamp.hour, site, parameter, func(Sxx, fn)],
-            index=["Index", "Band", "Filtered", "Day", "Hour", "Site", "Window", "Value"])
+        ret = pd.Series([index, band_name, filtered, stamp.day, stamp.hour, site, parameter, func(Sxx, fn), truncation],
+            index=["Index", "Band", "Filtered", "Day", "Hour", "Site", "Window", "Value", "Truncation"])
 
         return ret
 

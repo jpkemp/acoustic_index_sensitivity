@@ -52,67 +52,80 @@ class PlotCombiner:
         fig.savefig(buf, dpi="figure", bbox_inches=bbox)
 
     @classmethod
+    def convert_plots_to_images(cls, plots):
+        bufs = [io.BytesIO() for _ in range(len(plots))]
+        images=[]
+        lgds = []
+        for i, (fig, lgd_buf) in enumerate(plots):
+            buf = bufs[i]
+            fig.savefig(buf, format="png", bbox_inches="tight")
+            buf.seek(0)
+            images.append(Image.open(buf))
+            if lgd_buf: 
+                lgd = Image.open(lgd_buf)
+                lgds.append(lgd)
+
+        return images, bufs, lgds
+
+    @classmethod
+    def combine_images(cls, images, rows=2, imgs_per_row=None, spacing=20, lgd=None):
+        if imgs_per_row is None: imgs_per_row = ceil(len(images) / rows)
+        mod = len(images) % imgs_per_row
+        final = []
+        subset = images
+        if mod:
+            subset = images[:-mod]
+            final = images[-mod:]
+
+        widths, heights = zip(*(i.size for i in subset))
+        lgd_width = 0
+        if lgd:
+            lgd_width += lgd.size[0] + spacing
+
+        max_width = 0
+        max_height = 0
+        for i in range(0, len(subset), imgs_per_row):
+            row_width = sum(widths[i:i+imgs_per_row])
+            max_width = max(max_width, row_width)
+            max_height += max(heights[i:i+imgs_per_row])
+
+        total_width = max_width + lgd_width
+        total_height = ceil(max(heights) * rows) + (rows - 1) * (int(spacing))
+
+        new_im = Image.new('RGB', (total_width, total_height), color="white")
+
+        x_offset = 0
+        y_offset = 0
+        for i, im in enumerate(subset):
+            if i and rows > 1 and not i % imgs_per_row:
+                y_offset += im.size[1] + spacing
+                x_offset = 0
+
+            new_im.paste(im, (x_offset,y_offset))
+            x_offset += im.size[0]
+
+        filler = ceil(im.size[0] * (imgs_per_row - len(final)) / imgs_per_row)
+        x_offset = filler
+        y_offset += im.size[1] + spacing
+        for i, im in enumerate(final):
+            new_im.paste(im, (x_offset,y_offset))
+            x_offset += filler
+
+        if lgd:
+            x_offset = total_width - lgd_width - spacing
+            y_offset = ceil((total_height / 2) - (lgd.size[1] / 2)) + 10
+            new_im.paste(lgd, (x_offset,y_offset))
+
+        return new_im
+            
+    @classmethod
     def combine_figures(cls, plots, rows=2, imgs_per_row=None, spacing=20, include_lgd=True):
         '''combine graphs into one image. assumes all images same size if number of images does not equal rows * imgs_per_row'''
-        bufs = [io.BytesIO() for _ in range(len(plots))]
-        if imgs_per_row is None: imgs_per_row = len(plots)
+        bufs = []
         try:
-            images=[]
-            for i, (fig, lgd_buf) in enumerate(plots):
-                buf = bufs[i]
-                fig.savefig(buf, format="png", bbox_inches="tight")
-                buf.seek(0)
-                images.append(Image.open(buf))
-                if lgd_buf: lgd = Image.open(lgd_buf)
-
-            n_imgs = len(images)
-            mod = n_imgs % imgs_per_row
-            final = []
-            subset = images
-            if mod:
-                subset = images[:-mod]
-                final = images[-mod:]
-
-            widths, heights = zip(*(i.size for i in subset))
-            lgd_width = 0
-            if include_lgd:
-                lgd_width += lgd.size[0] + spacing
-
-            max_width = 0
-            max_height = 0
-            for i in range(0, n_imgs, imgs_per_row):
-                row_width = sum(widths[i:i+imgs_per_row])
-                max_width = max(max_width, row_width)
-                max_height += max(heights[i:i+imgs_per_row])
-
-            total_width = max_width + lgd_width
-            total_height = ceil(max(heights) * rows) + (rows - 1) * (int(spacing))
-
-            new_im = Image.new('RGB', (total_width, total_height), color="white")
-
-            x_offset = 0
-            y_offset = 0
-            for i, im in enumerate(subset):
-                if i and rows > 1 and not i % imgs_per_row:
-                    y_offset += im.size[1] + spacing
-                    x_offset = 0
-
-                new_im.paste(im, (x_offset,y_offset))
-                x_offset += im.size[0]
-
-            filler = ceil(im.size[0] * (imgs_per_row - len(final)) / imgs_per_row)
-            x_offset = filler
-            y_offset += im.size[1] + spacing
-            for i, im in enumerate(final):
-                new_im.paste(im, (x_offset,y_offset))
-                x_offset += filler
-
-            if include_lgd:
-                x_offset = total_width - lgd_width - spacing
-                y_offset = ceil((total_height / 2) - (lgd.size[1] / 2)) + 10
-                new_im.paste(lgd, (x_offset,y_offset))
-
-            
+            images, bufs, lgd = cls.convert_plots_to_images(plots)
+            lgd = lgd[-1] if lgd and include_lgd else None
+            new_im = cls.combine_images(images, rows, imgs_per_row, spacing, lgd)
         finally:
             for buf in bufs:
                 buf.close()

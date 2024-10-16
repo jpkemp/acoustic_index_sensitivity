@@ -16,22 +16,23 @@ get_family <- function(index) {
     if (index == "ACI"){return(stats::Gamma(link=log))}
     if (index == "ADI"){return(stats::Gamma(link=log))}
     if (index == "AEI"){return(brms::Beta())}
-    # if (index == "BIO"){return(brms::hurdle_gamma(link=log))}
     if (index == "BIO"){return(stats::Gamma(link=log))}
-    # if (index == "BIO"){return(brms::hurdle_lognormal())}
 }
 
-terra_hurdle_formula = brms::bf(Value ~ (Site * Window) + (1 | Day), hu ~ (Site * Window))
-# terra_hurdle_formula = brms::bf(Value ~ (Site * Window), hu ~ (Site * Window))
+terra_trunc_formula <- function(boundary_value) {
+    return(glue::glue("Value | trunc(ub={boundary_value}) ~ (Site * Window) + (1 | Day)"))
+}
 terra_general_formula = "Value ~ (Site * Window) + (1 | Day)"
-marine_hurdle_formula = brms::bf(Value ~ (Hour * Window) + (1 | Site), hu ~ (Hour * Window) + (1 | Site))
+marine_trunc_formula <- function(boundary_value) {
+    brms::bf(Value | trunc(ub=!!dplyr::sym(ub)) ~ (Hour * Window) + (1 | Site))
+}
 marine_general_formula = "Value ~ (Hour * Window) + (1 | Site)"
-generate_model <- function(data, family, iter, warmup, marine=TRUE, link_hu=FALSE) {
-    if (link_hu) {
+generate_model <- function(data, family, iter, warmup, marine=TRUE, trunc_upper=0) {
+    if (trunc_upper) {
         if (marine) {
-            formula = marine_hurdle_formula
+            formula = marine_trunc_formula(trunc_upper)
         } else {
-            formula = terra_hurdle_formula
+            formula = terra_trunc_formula(trunc_upper)
         }
     } else {
         if (marine) {
@@ -53,12 +54,11 @@ generate_model <- function(data, family, iter, warmup, marine=TRUE, link_hu=FALS
               silent=TRUE
             )
 }
-find_effects <- function(data, index, output_path, marine, iter=5000, warmup=4000) {
+find_effects <- function(data, index, output_path, marine, iter=5000, warmup=4000, upper_bound=0) {
     data_path <- paste(output_path, "_data.RData", sep="")
     save(data, file=data_path)
     family <- get_family(index)
-    # model <- generate_model(data, family, iter=iter, warmup=warmup, marine=marine, link_hu=index=="BIO")
-    model <- generate_model(data, family, iter=iter, warmup=warmup, marine=marine, link_hu=FALSE)
+    model <- generate_model(data, family, iter=iter, warmup=warmup, marine=marine, trunc_upper=upper_bound)
     model_path <- paste(output_path, "_model.RData", sep="")
     save(model, file=model_path)
     effects <- brms::conditional_effects(model)

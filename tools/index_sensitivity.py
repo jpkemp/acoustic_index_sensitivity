@@ -1,10 +1,12 @@
 import pickle
 from abc import ABC, abstractmethod
 from datetime import datetime as dt, timedelta as td
+from math import log
 from pathlib import Path
 from multiprocessing import Pool
 from typing import Callable
 import pandas as pd
+import numpy as np
 from maad.features import acoustic_complexity_index, bioacoustics_index, acoustic_diversity_index, acoustic_eveness_index
 from maad.sound import spectrogram
 from scipy.signal import butter, sosfilt
@@ -39,7 +41,7 @@ class IndexSensitivity(ABC):
 
     @classmethod
     @abstractmethod
-    def series_definition(cls, index, band_name, filtered, stamp, site, parameter, func, Sxx, fn):
+    def series_definition(cls, index, band_name, filtered, stamp, site, parameter, func, Sxx, fn, truncation):
         '''series creation for rows of the dataframe, including column names, which vary slightly between the Carara and Big Vicky experiments'''
 
     @classmethod
@@ -74,6 +76,12 @@ class IndexSensitivity(ABC):
         if idx == "BIO": return lambda x, y: bioacoustics_index(x, y, (min(y), max(y)))
 
         raise ValueError(f"No applicable index function for {idx}")
+
+    @classmethod
+    def get_adi_truncation(cls, y, bin_step=100):
+        lower_freq = min(y)
+        upper_freq = max(y)
+        return log(np.floor((upper_freq-lower_freq)/bin_step))
 
     @classmethod
     def get_rounded_timestamp(cls, timestamp:str, nearest_minute:int, fmt:str) -> dt:
@@ -154,19 +162,19 @@ class IndexSensitivity(ABC):
 
         return post_sxx, post_fn
 
-    def process_sound_file(self, file:Path, folder:Path):
+    def process_sound_file(self, filepath:Path, folder:Path):
         ''' Calculates index values for one sound file
             file: the file name
             folder: location of the file
 
             returns: a list of pandas series containing the index values and other information for all indices of interest
         '''
-        file_info = self.check_file(folder, file)
+        file_info = self.check_file(folder, filepath)
         if not file_info:
             return None
 
         site, stamp = file_info
-        wave = sp.open_wav(file, trim_start=self.settings.trim_file_start, channel=1)
+        wave = sp.open_wav(filepath, trim_start=self.settings.trim_file_start, channel=1)
         ret = []
         for parameter in self.fft_windows:
             pre_Sxx, tn, pre_fn, ext = spectrogram(wave.signal, wave.fs, window=self.settings.window, nperseg=parameter, noverlap=0)
@@ -181,12 +189,13 @@ class IndexSensitivity(ABC):
 
                 for index in self.indices_of_interest:
                     func = self.get_index_func(index)
-                    p = self.series_definition(index, band_name, filtered, stamp, site, parameter, func, Sxx, fn)
+                    truncation = self.get_adi_truncation(fn) if index == "ADI" else 0
+                    p = self.series_definition(index, band_name, filtered, stamp, site, parameter, func, Sxx, fn, truncation)
                     ret.append(p)
 
         return ret
 
-    def build_model(self, r_link:Rlink, marine:bool, text_options:list, df:pd.DataFrame, factors:list):
+    def build_model(self, r_link:Rlink, marine:bool, text_options:list, df:pd.DataFrame, factors:list, truncation=0):
         ''' Build a GLMM model for the index values.
         r_link: an instance of Rlink 
         marine: whether the data is from Big Vicky or Carara
@@ -203,7 +212,8 @@ class IndexSensitivity(ABC):
 
         print(f"{band_name} {flt}using {index}")
         path = f"output/{cross_effect} x Window Conditional Effects for {index.upper()} over {flt}{band_name.lower()} frequencies"
-        model, effects = r_link.r_src.find_effects(r_df, index, str(path), marine=marine, iter=self.settings.iterations, warmup=self.settings.warmup)
+        model, effects = r_link.r_src.find_effects(r_df, index, str(path), marine=marine, 
+                                        iter=self.settings.iterations, warmup=self.settings.warmup, upper_bound=truncation)
         print(model)
         warnings = r_link.r_src.get_warnings()
         if warnings != r_link.null_value:
