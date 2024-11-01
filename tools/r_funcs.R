@@ -24,7 +24,7 @@ terra_trunc_formula <- function(boundary_value) {
 }
 terra_general_formula = "Value ~ (Site * Window) + (1 | Day)"
 marine_trunc_formula <- function(boundary_value) {
-    brms::bf(Value | trunc(ub=!!dplyr::sym(ub)) ~ (Hour * Window) + (1 | Site))
+    return(glue::glue("Value | trunc(ub={boundary_value}) ~ (Hour * Window) + (1 | Site)"))
 }
 marine_general_formula = "Value ~ (Hour * Window) + (1 | Site)"
 generate_model <- function(data, family, iter, warmup, marine=TRUE, trunc_upper=0) {
@@ -58,7 +58,8 @@ find_effects <- function(data, index, output_path, marine, iter=5000, warmup=400
     data_path <- paste(output_path, "_data.RData", sep="")
     save(data, file=data_path)
     family <- get_family(index)
-    model <- generate_model(data, family, iter=iter, warmup=warmup, marine=marine, trunc_upper=upper_bound)
+    # model <- generate_model(data, family, iter=iter, warmup=warmup, marine=marine, trunc_upper=upper_bound)
+    model <- generate_model(data, family, iter=iter, warmup=warmup, marine=marine)
     model_path <- paste(output_path, "_model.RData", sep="")
     save(model, file=model_path)
     effects <- brms::conditional_effects(model)

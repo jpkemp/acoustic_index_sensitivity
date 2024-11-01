@@ -213,7 +213,7 @@ class IndexSensitivity(ABC):
         print(f"{band_name} {flt}using {index}")
         path = f"output/{cross_effect} x Window Conditional Effects for {index.upper()} over {flt}{band_name.lower()} frequencies"
         model, effects = r_link.r_src.find_effects(r_df, index, str(path), marine=marine, 
-                                        iter=self.settings.iterations, warmup=self.settings.warmup, upper_bound=truncation)
+                                        iter=self.settings.iterations, warmup=self.settings.warmup, upper_bound=float(truncation))
         print(model)
         warnings = r_link.r_src.get_warnings()
         if warnings != r_link.null_value:

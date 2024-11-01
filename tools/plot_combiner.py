@@ -23,7 +23,9 @@ class PlotCombiner:
     def open_figure(self, filename, discard_lgd=False):
         fig = pickle.load(open(filename, 'rb'))
         lgd = fig.get_axes()[0].get_legend()
-        if discard_lgd:
+        if lgd is None:
+            buf = None
+        elif discard_lgd:
             lgd.remove()
             buf = None
         else:
@@ -196,5 +198,8 @@ if __name__ == "__main__":
     filenames = ["output/Hour_x_Window_conditional_effects_for_ADI_over_filtered_fish_frequencies_Python.pkl",
                 "output/Hour_x_Window_conditional_effects_for_ADI_over_fish_frequencies_Python.pkl"]
     combiner.combine_plots(filenames, "output", f"fish_ADI")
+    
+    filenames = [f"output/{freq}_Hz_{window}_FFT_simulated_calls.pkl" for freq in (1200, 12000) for window in (256, 4096)]
+    combiner.combine_plots(filenames, "output", f"simulated")
 
     
