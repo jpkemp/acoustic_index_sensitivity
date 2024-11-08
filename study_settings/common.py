@@ -6,8 +6,8 @@ class CommonSettings:
     n_processes:int = 10
     frequency_threshold:int = 100
     trim_file_start:int = 5
-    iterations:int = 10000
-    warmup:int = 5000
+    iterations:int = 20000
+    warmup:int = 15000
     colors:tuple = None
     den:int = None
     num:int = None
