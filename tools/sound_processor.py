@@ -196,7 +196,7 @@ class SoundProcessor:
 
            Returns (f, t, sxx) where f is a vector-like of the frequencies, t is a vector-like of the times, and sxx is the spectrogram
         '''
-        window = sig.get_window('hann', samples)
+        window = sig.get_window(window, samples)
         f, t, sxx = sig.spectrogram(signal, fs, window=window, noverlap=overlap, mode=mode, scaling='density', nperseg=samples, nfft=samples, axis=-1)
         # sxx *= 10e16
         if filename and plotter:
