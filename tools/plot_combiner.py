@@ -22,8 +22,34 @@ class PlotCombiner:
         for buf in self.fig_bufs:
             buf.close()
 
+    @classmethod
+    def fig_changer(cls, fig, filename):
+        ax = fig.gca()
+        if "Value" in ax.get_ylabel():
+            filename = str(filename)
+            if "ACI" in filename:
+                replacement = "ACI"
+            if "ADI" in filename:
+                replacement = "ADI"
+            if "AEI" in filename:
+                replacement = "AEI"
+            if "BIO" in filename:
+                replacement = "BIO"
+            ax.set_ylabel(replacement)
+            t = ax.yaxis.get_offset_text()
+            text = t.get_text()
+            if text:
+                t.set_visible(False)
+
+        if ax.get_xlabel() == "Window":
+            ax.set_xlabel("Window length (samples)")
+        cls.format_axis_numbers(ax)
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+
     def open_figure(self, filename, discard_lgd=False):
         fig = pickle.load(open(filename, 'rb'))
+        self.fig_changer(fig, filename)
         lgd = fig.get_axes()[0].get_legend()
         if lgd is None:
             buf = None
@@ -35,11 +61,6 @@ class PlotCombiner:
             self.fig_bufs.append(buf)
             self.export_legend(lgd, buf)
             lgd.remove()
-
-        ax = fig.gca()
-        if ax.get_xlabel() == "Window":
-            ax.set_xlabel("Window length (samples)")
-        # self.format_axis_numbers(ax)
 
         return fig, buf
 
@@ -83,11 +104,17 @@ class PlotCombiner:
             lgd_width += lgd.size[0] + spacing
 
         max_width = 0
+        max_col_width = [0] * imgs_per_row
         max_height = 0
         for i in range(0, len(subset), imgs_per_row):
-            row_width = sum(widths[i:i+imgs_per_row])
+            col_widths = widths[i:i+imgs_per_row]
+            row_width = sum(col_widths) + imgs_per_row * spacing
+            for j in range(imgs_per_row):
+                max_col_width[j] = max(max_col_width[j], col_widths[j])
+
             max_width = max(max_width, row_width)
             max_height += max(heights[i:i+imgs_per_row])
+
 
         total_width = max_width + lgd_width
         total_height = ceil(max(heights) * rows) + (rows - 1) * (int(spacing))
@@ -101,8 +128,9 @@ class PlotCombiner:
                 y_offset += im.size[1] + spacing
                 x_offset = 0
 
-            new_im.paste(im, (x_offset,y_offset))
-            x_offset += im.size[0]
+            adjusted_pos = int((max_col_width[i%imgs_per_row] - im.size[0]) / 2)
+            new_im.paste(im, (x_offset + adjusted_pos,y_offset))
+            x_offset += max(im.size[0], max_col_width[i % imgs_per_row])
 
         filler = ceil(im.size[0] * (imgs_per_row - len(final)) / imgs_per_row)
         x_offset = filler
@@ -148,25 +176,34 @@ class PlotCombiner:
         return filenames
 
     @classmethod
-    def format_numbers_for_one_axis(cls, tg, ts, lg, ls):
+    def format_numbers_for_one_axis(cls, ax, pos, tg, ts, lg, ls):
         labels = tg()
+        # ts(labels)
         max_exponent = max([int("{:.2e}".format(x).split('e')[1]) for x in labels])
-        if max_exponent > 3:
+        if max_exponent > 4:
             new_labels = [int(x) / 10**max_exponent for x in labels]
-            ts(labels, new_labels)
-            label = lg()
-            ls(f"{label} (x10^{max_exponent})")
+            ax.text(*pos, f"$x10^{max_exponent}$", transform=ax.transAxes, fontsize=12)
+        elif max_exponent > 2:
+            new_labels = [f"{int(x):,}" for x in labels]
+        else:
+            new_labels = lg()
+
+        ls(new_labels)
 
     @classmethod
     def format_axis_numbers(cls, ax):
-        cls.format_numbers_for_one_axis(ax.get_xticks,
+        cls.format_numbers_for_one_axis(ax,
+                                        (1.02,-0.01),
+                                        ax.get_xticks,
                                         ax.set_xticks,
-                                        ax.get_xlabel,
-                                        ax.set_xlabel)
-        cls.format_numbers_for_one_axis(ax.get_yticks,
+                                        ax.get_xticklabels,
+                                        ax.set_xticklabels)
+        cls.format_numbers_for_one_axis(ax,
+                                        (0.01, 0.94),
+                                        ax.get_yticks,
                                         ax.set_yticks,
-                                        ax.get_ylabel,
-                                        ax.set_ylabel)
+                                        ax.get_yticklabels,
+                                        ax.set_yticklabels)
 
     @classmethod
     def update_axis_font_size(cls, ax, size=16):
