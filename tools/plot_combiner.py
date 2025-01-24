@@ -7,6 +7,8 @@ from math import ceil
 from pathlib import Path
 from tqdm import tqdm
 from PIL import Image
+import matplotlib
+import numpy as np
 
 class PlotCombiner:
     '''graph combining functions'''
@@ -35,23 +37,19 @@ class PlotCombiner:
             lgd.remove()
 
         ax = fig.gca()
-        ax.ticklabel_format()
-        # ax.ticklabel_format(style='sci', axis='y', scilimits=(-5,5))
-        t = ax.yaxis.get_offset_text()
-        text = t.get_text()
-        if text:
-            t.set_visible(False)
-            text = f"Value ($x10^{text[2:]}$)"
-            ax.set_ylabel(text)
+        if ax.get_xlabel() == "Window":
+            ax.set_xlabel("Window length (samples)")
+        # self.format_axis_numbers(ax)
 
         return fig, buf
 
     @classmethod
-    def export_legend(cls, legend, buf):
+    def export_legend(cls, legend, buf, fontsize=16):
+        cls.update_lgd_font_size(legend, fontsize)
         fig  = legend.figure
         fig.canvas.draw()
         bbox  = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-        fig.savefig(buf, dpi="figure", bbox_inches=bbox)
+        fig.savefig(buf, bbox_inches=bbox)
 
     @classmethod
     def convert_plots_to_images(cls, plots):
@@ -63,7 +61,7 @@ class PlotCombiner:
             fig.savefig(buf, format="png", bbox_inches="tight")
             buf.seek(0)
             images.append(Image.open(buf))
-            if lgd_buf: 
+            if lgd_buf:
                 lgd = Image.open(lgd_buf)
                 lgds.append(lgd)
 
@@ -119,7 +117,7 @@ class PlotCombiner:
             new_im.paste(lgd, (x_offset,y_offset))
 
         return new_im
-            
+
     @classmethod
     def combine_figures(cls, plots, rows=2, imgs_per_row=None, spacing=20, include_lgd=True):
         '''combine graphs into one image. assumes all images same size if number of images does not equal rows * imgs_per_row'''
@@ -150,10 +148,55 @@ class PlotCombiner:
         return filenames
 
     @classmethod
-    def combine_plots(cls, filenames, output_folder, output_file_notation, max_figs_per_row=2):
+    def format_numbers_for_one_axis(cls, tg, ts, lg, ls):
+        labels = tg()
+        max_exponent = max([int("{:.2e}".format(x).split('e')[1]) for x in labels])
+        if max_exponent > 3:
+            new_labels = [int(x) / 10**max_exponent for x in labels]
+            ts(labels, new_labels)
+            label = lg()
+            ls(f"{label} (x10^{max_exponent})")
+
+    @classmethod
+    def format_axis_numbers(cls, ax):
+        cls.format_numbers_for_one_axis(ax.get_xticks,
+                                        ax.set_xticks,
+                                        ax.get_xlabel,
+                                        ax.set_xlabel)
+        cls.format_numbers_for_one_axis(ax.get_yticks,
+                                        ax.set_yticks,
+                                        ax.get_ylabel,
+                                        ax.set_ylabel)
+
+    @classmethod
+    def update_axis_font_size(cls, ax, size=16):
+        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
+            ax.get_xticklabels() + ax.get_yticklabels()):
+                item.set_fontsize(size)
+
+    @classmethod
+    def update_lgd_font_size(cls, lgd, size=16):
+        for text in lgd.texts:
+            text.set_fontsize(size)
+        lgd.get_title().set_fontsize(size)
+
+    @classmethod
+    def update_line_size(cls, ax, size=2.2):
+        lines = ax.get_lines()
+        for line in lines:
+            line.set_linewidth(size)
+
+    @classmethod
+    def combine_plots(cls, filenames, output_folder, output_file_notation, max_figs_per_row=2, increase_line_size=False):
         '''wrapper for graph combining process'''
         with PlotCombiner() as combiner:
             figs = [combiner.open_figure(x, bool(i)) for i, x in enumerate(filenames)]
+            for fig in figs:
+                ax = fig[0].axes[0]
+                cls.update_axis_font_size(ax)
+                if increase_line_size:
+                    cls.update_line_size(ax)
+
             n_figs = len(figs)
             rows = ceil(n_figs / max_figs_per_row)
             final_fig = cls.combine_figures(figs, rows, max_figs_per_row)
@@ -170,7 +213,7 @@ if __name__ == "__main__":
             return False
         if flt and "filtered"not in x:
             return False
-        
+
         return True
 
     combiner = PlotCombiner
@@ -185,21 +228,30 @@ if __name__ == "__main__":
         combiner.combine_plots(filenames, "output", f"{target}_{band}_{fltr}")
 
 
+    matplotlib.rcParams.update({'font.size': 16})
     filenames = [f"output/{x}_call frequency effect_rate_plot.pkl" for x in ["ACI", "ADI", "AEI", "BIO"]]
-    combiner.combine_plots(filenames, "output", f"frequency_all")
+    combiner.combine_plots(filenames, "output", f"frequency_all", increase_line_size=True)
 
     filenames = [f"output/{x}_call frequency effect_rate_plot.pkl" for x in ["ACI", "BIO"]]
-    combiner.combine_plots(filenames, "output", f"frequency_ACI_BIO")
+    combiner.combine_plots(filenames, "output", f"frequency_ACI_BIO", increase_line_size=True)
 
     filenames = ["output/Hour_x_Window_conditional_effects_for_AEI_over_filtered_shrimp_frequencies_Python.pkl",
                 "output/Hour_x_Window_conditional_effects_for_AEI_over_shrimp_frequencies_Python.pkl"]
     combiner.combine_plots(filenames, "output", f"shrimp_AEI")
-    
+
     filenames = ["output/Hour_x_Window_conditional_effects_for_ADI_over_filtered_fish_frequencies_Python.pkl",
                 "output/Hour_x_Window_conditional_effects_for_ADI_over_fish_frequencies_Python.pkl"]
     combiner.combine_plots(filenames, "output", f"fish_ADI")
-    
+
     filenames = [f"output/{freq}_Hz_{window}_FFT_simulated_calls.pkl" for freq in (1200, 12000) for window in (256, 4096)]
     combiner.combine_plots(filenames, "output", f"simulated")
 
-    
+    filename = "output/ACI_2048.pkl"
+    fig = pickle.load(open(filename, 'rb'))
+    ax = fig.axes[0]
+    PlotCombiner.update_axis_font_size(ax)
+    lgd = ax.get_legend()
+    PlotCombiner.update_lgd_font_size(lgd)
+    PlotCombiner.update_line_size(ax)
+    fig.savefig("output/ACI_2048_updated.png", bbox_inches="tight")
+
