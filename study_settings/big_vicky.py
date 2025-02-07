@@ -30,7 +30,7 @@ class BigVickyToolbox(IndexSensitivity):
 
     @overrides
     def series_definition(cls, index, band_name, filtered, stamp, site, parameter, func, Sxx, fn, truncation):
-        '''series creation for rows of the dataframe, including column names, which vary slightly between the Carara and Big Vicky experiments'''
+        '''series creation for rows of the dataframe, including column names, which vary slightly between the Santa Rosa and Big Vicky experiments'''
         ret = pd.Series([index, band_name, filtered, stamp.day, stamp.hour, site, parameter, func(Sxx, fn), truncation],
             index=["Index", "Band", "Filtered", "Day", "Hour", "Site", "Window", "Value", "Truncation"])
 
@@ -39,7 +39,7 @@ class BigVickyToolbox(IndexSensitivity):
     @overrides
     def create_dataframe(cls, serieses:list, input_path:str=None, output_path:str=None):
         '''concatenates a list of series to a dataframe, and converts columns to the correct types
-        
+
         input_path: if given, loads an existing dataframe before setting the types, instead of concatenating a series
         output_path: if given, saves the dataframe to file'''
         if input_path:
@@ -56,4 +56,4 @@ class BigVickyToolbox(IndexSensitivity):
         if output_path:
             df.to_pickle(output_path)
 
-        return df    
+        return df

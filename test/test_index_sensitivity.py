@@ -4,26 +4,26 @@ from datetime import datetime as dt
 import numpy as np
 from pathlib import Path
 from study_settings.big_vicky import BigVickySettings, BigVickyToolbox
-from study_settings.carara import CararaSettings, CararaToolbox
+from study_settings.santa_rosa import SantaRosaSettings, SantaRosaToolbox
 from study_settings.common import CommonSettings
 from tools.index_sensitivity import IndexSensitivity
-from tools.sound_processor import SoundProcessor 
+from tools.sound_processor import SoundProcessor
 
 class TestToolboxFunctions(unittest.TestCase):
     def setUp(self):
         window_sizes = [256, 512, 1024]
-        test_bands = [("test_a", (200, 7000), True), 
-                      ("test_b", (500, 9000), False), 
-                      ("test_c", (100, 200), True), 
+        test_bands = [("test_a", (200, 7000), True),
+                      ("test_b", (500, 9000), False),
+                      ("test_c", (100, 200), True),
                       ("test_d", (200, 700), False)]
         indices_of_interest = ["ACI", "BIO"]
-        
+
         self.vicky = BigVickyToolbox(BigVickySettings,
                                         window_sizes,
                                         test_bands,
                                         indices_of_interest)
-        
-        self.carara = CararaToolbox(CararaSettings,
+
+        self.santa_rosa = SantaRosaToolbox(SantaRosaSettings,
                                     window_sizes,
                                     test_bands,
                                     indices_of_interest)
@@ -43,7 +43,7 @@ class TestToolboxFunctions(unittest.TestCase):
         fs = 2010
         snd = self.sp.create_sine(3000, 3, fs)
         f, t, sxx = self.sp.create_spectrogram(snd.signal, fs)
-        for toolbox in [self.carara, self.vicky]:
+        for toolbox in [self.santa_rosa, self.vicky]:
             sxxn, fn = toolbox.remove_below_threshold(sxx, f)
             self.assertTrue(min(fn) >= CommonSettings.frequency_threshold)
             self.assertEqual(max(fn), max(f))
@@ -51,10 +51,10 @@ class TestToolboxFunctions(unittest.TestCase):
             test_idx = np.where(f == fn[0])[0][0]
             self.assertEqual(sxx[test_idx, 0], sxxn[0, 0])
 
-    def test_carara_folder(self):
-        folder = Path("test/HW1-20240505T032601Z-001") 
+    def test_santa_rosa_folder(self):
+        folder = Path("test/HW1-20240505T032601Z-001")
         filename = folder / "BUSY_20140428_050300.wav"
-        site, stamp = self.carara.check_file(folder, filename)
+        site, stamp = self.santa_rosa.check_file(folder, filename)
         self.assertEqual("HW", site)
         self.assertEqual(stamp, dt(2014,4,28,5,5))
 

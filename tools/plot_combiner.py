@@ -182,7 +182,7 @@ class PlotCombiner:
         max_exponent = max([int("{:.2e}".format(x).split('e')[1]) for x in labels])
         if max_exponent > 4:
             new_labels = [int(x) / 10**max_exponent for x in labels]
-            ax.text(*pos, f"$x10^{max_exponent}$", transform=ax.transAxes, fontsize=12)
+            ax.text(*pos, f"$x10^{max_exponent}$", transform=ax.transAxes, fontsize=16)
         elif max_exponent > 2:
             new_labels = [f"{int(x):,}" for x in labels]
         else:
@@ -199,7 +199,7 @@ class PlotCombiner:
                                         ax.get_xticklabels,
                                         ax.set_xticklabels)
         cls.format_numbers_for_one_axis(ax,
-                                        (0.01, 0.94),
+                                        (0.01, 0.92),
                                         ax.get_yticks,
                                         ax.set_yticks,
                                         ax.get_yticklabels,

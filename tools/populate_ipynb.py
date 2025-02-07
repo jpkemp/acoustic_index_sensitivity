@@ -1,7 +1,7 @@
 
 class CellAdder:
     indices = ["ACI", "ADI", "AEI", "BIO"]
-    headings = ["Big Vicky", "Carara"]
+    headings = ["Big Vicky", "Santa Rosa"]
     flts = ["extracted", "filtered"]
     bands = ["broadband", "fish", "shrimp"]
 
@@ -20,11 +20,11 @@ class CellAdder:
         else:
             group = f"{band}_{flt}_{index}_group"
 
-        text =  [f"{name}_fig, {name}_ratio_summary = experiment({heading}_df,", 
-                 f"{group},",  
-                 f"{heading}_toolbox,", 
-                 "r_link,", 
-                 f"marine={marine},", 
+        text =  [f"{name}_fig, {name}_ratio_summary = experiment({heading}_df,",
+                 f"{group},",
+                 f"{heading}_toolbox,",
+                 "r_link,",
+                 f"marine={marine},",
                  f"factors={factors},",
                  f"cross_effect='{cross_effect}')"]
 
@@ -32,25 +32,25 @@ class CellAdder:
             text[i+1] = f"{' ' * 10}{txt}"
 
         return text
-    
+
     @classmethod
     def generate_print_cell(cls, heading, band, index, flt=None):
         if flt:
             return f"print({heading}_{flt}_{band}_{index}_ratio_summary)"
 
         return f"print({heading}_{band}_{index}_ratio_summary)"
-    
+
     @classmethod
     def generate_fig_cell(cls, heading, band, index, flt=None):
         if flt:
             return f"{heading}_{flt}_{band}_{index}_fig"
 
         return f"{heading}_{band}_{index}_fig"
-    
+
     @classmethod
     def generate_md_cell(cls, text, level):
         return f"{'#'*level} {text}"
-    
+
     @classmethod
     def generate_index_definitions(cls):
         string = ""
@@ -84,9 +84,9 @@ class CellAdder:
                     self.add_cell(self.generate_print_cell(small_heading, band, index, flt), 'code')
                     self.add_cell(self.generate_fig_cell(small_heading, band, index, flt), 'code')
 
-    def add_carara_cells(self):
-        heading = "Carara"
-        small_heading = 'carara'
+    def add_santa_rosa_cells(self):
+        heading = "Santa Rosa"
+        small_heading = 'santa_rosa'
         factors = ["Site"]
         cross_effect = "Site"
         flt = "extracted"
@@ -122,7 +122,7 @@ if __name__ == "__main__":
         l.append(cell_data)
 
     adder = CellAdder(add_cell)
-    for i, func in enumerate([adder.add_vicky_cells, adder.add_carara_cells]):
+    for i, func in enumerate([adder.add_vicky_cells, adder.add_santa_rosa_cells]):
         cell_list = []
         add_cell_to_list = partial(add_cell, cell_list)
         adder.add_cell = add_cell_to_list

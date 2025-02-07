@@ -17,10 +17,10 @@ from study_settings.common import CommonSettings
 
 class IndexSensitivity(ABC):
     '''Functions for loading sound files, calulating acoustic indices, and modelling differences at various parameters. These functions have been designed with this study in mind and some may not generalise well'''
-    def __init__(self, 
+    def __init__(self,
                  settings:CommonSettings,
-                 window_sizes:list, 
-                 test_bands:list, 
+                 window_sizes:list,
+                 test_bands:list,
                  indices_of_interest:list) -> None:
         '''settings: dataclass of settings for the study
            window_size: FFT window sizes to test
@@ -42,13 +42,13 @@ class IndexSensitivity(ABC):
     @classmethod
     @abstractmethod
     def series_definition(cls, index, band_name, filtered, stamp, site, parameter, func, Sxx, fn, truncation):
-        '''series creation for rows of the dataframe, including column names, which vary slightly between the Carara and Big Vicky experiments'''
+        '''series creation for rows of the dataframe, including column names, which vary slightly between the Santa Rosa and Big Vicky experiments'''
 
     @classmethod
     @abstractmethod
     def create_dataframe(cls, serieses:list, input_path:str=None, output_path:str=None):
         '''concatenates a list of series to a dataframe, and converts columns to the correct types
-        
+
         input_path: if given, loads an existing dataframe before setting the types, instead of concatenating a series
         output_path: if given, saves the dataframe to file'''
 
@@ -86,11 +86,11 @@ class IndexSensitivity(ABC):
     @classmethod
     def get_rounded_timestamp(cls, timestamp:str, nearest_minute:int, fmt:str) -> dt:
         '''Round timestamp to the nearest minute
-        
+
         timestamp: the timestamp
         nearest_minute: minute to round to (<60)
         fmt: format sting for the timestamp
-        
+
         returns: datetime object with the rounded timestamp'''
         stamp = dt.strptime(timestamp, fmt)
         discard = td(minutes=stamp.minute % nearest_minute,
@@ -106,7 +106,7 @@ class IndexSensitivity(ABC):
     @classmethod
     def pickle_data(cls, data:object, filepath: str) -> None:
         '''pickle an object to file
-        
+
         data: the object to pickle
         filepath: path to save to'''
         filepath = str(filepath)
@@ -119,9 +119,9 @@ class IndexSensitivity(ABC):
     @classmethod
     def unpickle_data(cls, filepath:str) -> object:
         '''load a pickle object from file
-        
+
         filepath: the file to load
-        
+
         returns: object'''
         filepath = str(filepath)
         if filepath[-4:] != ".pkl":
@@ -133,8 +133,8 @@ class IndexSensitivity(ABC):
         return data
 
     def remove_below_threshold(self, Sxx, fn):
-        '''remove frequencies from a spectrogram below a threshold. The threshold is defined in the settings supplied on instance creation. 
-        
+        '''remove frequencies from a spectrogram below a threshold. The threshold is defined in the settings supplied on instance creation.
+
         Sxx: the spectrogram
         fn: the frequencies matching the spectrogram'''
         n_below_threshold = len(fn[fn < self.settings.frequency_threshold])
@@ -197,9 +197,9 @@ class IndexSensitivity(ABC):
 
     def build_model(self, r_link:Rlink, marine:bool, text_options:list, df:pd.DataFrame, factors:list, truncation=0):
         ''' Build a GLMM model for the index values.
-        r_link: an instance of Rlink 
-        marine: whether the data is from Big Vicky or Carara
-        text_options: tuple of descriptions of index, filtered, band_name, cross_effect 
+        r_link: an instance of Rlink
+        marine: whether the data is from Big Vicky or Santa Rosa
+        text_options: tuple of descriptions of index, filtered, band_name, cross_effect
         df: the index value data
         factors: which columns to treat as factors in the model
 
@@ -212,7 +212,7 @@ class IndexSensitivity(ABC):
 
         print(f"{band_name} {flt}using {index}")
         path = f"output/{cross_effect} x Window Conditional Effects for {index.upper()} over {flt}{band_name.lower()} frequencies"
-        model, effects = r_link.r_src.find_effects(r_df, index, str(path), marine=marine, 
+        model, effects = r_link.r_src.find_effects(r_df, index, str(path), marine=marine,
                                         iter=self.settings.iterations, warmup=self.settings.warmup, upper_bound=float(truncation))
         print(model)
         warnings = r_link.r_src.get_warnings()
