@@ -5,10 +5,22 @@ from functools import partial
 from itertools import product
 from math import ceil
 from pathlib import Path
+import matplotlib.pyplot
 from tqdm import tqdm
 from PIL import Image
 import matplotlib
 import numpy as np
+
+class RenamingUnpickler(pickle.Unpickler):
+    def find_class(cls, module, name):
+        if module == 'study_settings.carara':
+            module = 'study_settings.santa_rosa'
+        if name == "CararaSettings":
+            name = 'SantaRosaSetting'
+        elif name == 'CararaToolbox':
+            name = 'SantaRosaToolbox'
+        return super().find_class(module, name)
+
 
 class PlotCombiner:
     '''graph combining functions'''
@@ -44,11 +56,12 @@ class PlotCombiner:
         if ax.get_xlabel() == "Window":
             ax.set_xlabel("Window length (samples)")
         cls.format_axis_numbers(ax)
+        fig.set_dpi(300)
         fig.canvas.draw()
         fig.canvas.flush_events()
 
     def open_figure(self, filename, discard_lgd=False):
-        fig = pickle.load(open(filename, 'rb'))
+        fig = RenamingUnpickler(open(filename, 'rb')).load()
         self.fig_changer(fig, filename)
         lgd = fig.get_axes()[0].get_legend()
         if lgd is None:
@@ -70,7 +83,8 @@ class PlotCombiner:
         fig  = legend.figure
         fig.canvas.draw()
         bbox  = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-        fig.savefig(buf, bbox_inches=bbox)
+        fig.savefig(buf, bbox_inches=bbox, dpi=300)
+        matplotlib.pyplot.close(fig)
 
     @classmethod
     def convert_plots_to_images(cls, plots):
@@ -79,7 +93,8 @@ class PlotCombiner:
         lgds = []
         for i, (fig, lgd_buf) in enumerate(plots):
             buf = bufs[i]
-            fig.savefig(buf, format="png", bbox_inches="tight")
+            fig.savefig(buf, format="png", bbox_inches="tight", dpi=300)
+            matplotlib.pyplot.close(fig)
             buf.seek(0)
             images.append(Image.open(buf))
             if lgd_buf:
@@ -238,7 +253,7 @@ class PlotCombiner:
             rows = ceil(n_figs / max_figs_per_row)
             final_fig = cls.combine_figures(figs, rows, max_figs_per_row)
             output_filename = str(output_folder) + f"/combined_{output_file_notation}.png"
-            final_fig.save(output_filename)
+            final_fig.save(output_filename, dpi=(300,300))
 
 if __name__ == "__main__":
     def inc(tgt:str, band:str, flt:bool, x):
@@ -265,7 +280,7 @@ if __name__ == "__main__":
         combiner.combine_plots(filenames, "output", f"{target}_{band}_{fltr}")
 
 
-    matplotlib.rcParams.update({'font.size': 16})
+    matplotlib.rcParams.update({'font.size': 16, 'figure.dpi': 300})
     filenames = [f"output/{x}_call frequency effect_rate_plot.pkl" for x in ["ACI", "ADI", "AEI", "BIO"]]
     combiner.combine_plots(filenames, "output", f"frequency_all", increase_line_size=True)
 
@@ -290,5 +305,5 @@ if __name__ == "__main__":
     lgd = ax.get_legend()
     PlotCombiner.update_lgd_font_size(lgd)
     PlotCombiner.update_line_size(ax)
-    fig.savefig("output/ACI_2048_updated.png", bbox_inches="tight")
+    fig.savefig("output/ACI_2048_updated.png", bbox_inches="tight", dpi=300)
 
