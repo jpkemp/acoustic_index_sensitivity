@@ -24,6 +24,7 @@ class RenamingUnpickler(pickle.Unpickler):
 
 class PlotCombiner:
     '''graph combining functions'''
+    time_period_conversion = {'0': 'Midnight', '12': 'Midday'}
     def __init__(self) -> None:
         self.fig_bufs = []
 
@@ -33,6 +34,7 @@ class PlotCombiner:
     def __exit__(self, exc_type, exc_value, traceback):
         for buf in self.fig_bufs:
             buf.close()
+
 
     @classmethod
     def fig_changer(cls, fig, filename):
@@ -80,6 +82,12 @@ class PlotCombiner:
     @classmethod
     def export_legend(cls, legend, buf, fontsize=16):
         cls.update_lgd_font_size(legend, fontsize)
+        ttl = legend.get_title()
+        if ttl.get_text() == 'Hour':
+            ttl.set_text('Time Period')
+            for text in legend.texts:
+                text.set_text(cls.time_period_conversion[text.get_text()])
+
         fig  = legend.figure
         fig.canvas.draw()
         bbox  = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
